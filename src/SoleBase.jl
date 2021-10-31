@@ -1,13 +1,13 @@
 module SoleBase
 
 using Reexport
-# using ScientificTypes
+using ScientificTypes
 
 include("data/SoleData.jl")
 
-@reexport using .SoleData
 @reexport using DataFrames
+@reexport using .SoleData
 
-# include("init.jl")
+include("init.jl")
 
 end # module

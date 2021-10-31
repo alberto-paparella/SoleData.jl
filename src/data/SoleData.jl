@@ -3,9 +3,9 @@ module SoleData
 using Reexport
 
 include("dataset/SoleDataset.jl")
-# include("types/SoleType.jl")
+include("types/SoleType.jl")
 
 @reexport using .SoleDataset
-# @reexport using .SoleType
+@reexport using .SoleType
 
 end # module
