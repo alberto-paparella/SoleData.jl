@@ -2,9 +2,9 @@
 const __note_about_utils = "
 !!! note
 
-    It is important to consider that this function is intended for internal use only so.
+    It is important to consider that this function is intended for internal use only.
 
-    It assumes that any check is performed prior its call (ex: check if the index of an
+    It assumes that any check is performed prior its call (e.g., check if the index of an
     attribute is valid or not).
 "
 
@@ -22,7 +22,7 @@ Note: since the returned AbstractMultiFrameDataset will be empty its columns typ
 $(__note_about_utils)
 """
 function _empty(mfd::AbstractMultiFrameDataset)
-    warn("This function is extremly not efficent expecally for large datasets: " *
+    warn("This function is extremely not efficent especially for large datasets: " *
         "consider creating a dispatch for type " * string(typeof(mfd)))
     return _empty!(deepcopy(mfd))
 end
@@ -60,7 +60,7 @@ end
 Determine whether two AbstractMultiFrameDatasets have the same inner DataFrame regardless of
 the positioning of their columns.
 
-Note: the check will performed against the instances too; if the intent is to just check
+Note: the check will be performed against the instances too; if the intent is to just check
 the presence of the same attributes use [`_same_attributes`](@ref) instead.
 
 $(__note_about_utils)
@@ -74,7 +74,7 @@ function _same_dataframe(mfd1::AbstractMultiFrameDataset, mfd2::AbstractMultiFra
     mfd2_attrs = Symbol.(names(data(mfd2)))
     unmixed_indices = [findfirst(x -> isequal(x, name), mfd2_attrs) for name in mfd1_attrs]
 
-    data(mfd1) == data(mfd2)[:,unmixed_indices]
+    return data(mfd1) == data(mfd2)[:,unmixed_indices]
 end
 
 """
@@ -83,7 +83,7 @@ end
 Determine whether two AbstractMultiFrameDatasets have the same frames regardless of the
 positioning of their columns.
 
-Note: the check will performed against the instances too; if the intent is to just check
+Note: the check will be performed against the instances too; if the intent is to just check
 the presence of the same attributes use [`_same_attributes`](@ref) instead.
 
 $(__note_about_utils)
@@ -108,7 +108,7 @@ function _same_descriptor(mfd1::AbstractMultiFrameDataset, mfd2::AbstractMultiFr
         end
     end
 
-    return true
+    return data(mfd1) == data(mfd2)[:,unmixed_indices]
 end
 
 """
@@ -130,13 +130,13 @@ end
 """
     _same_multiframedataset(mfd1, mfd2)
 
-Determine whether two AbstractMultiFrameDatasets have the same inner DataFrame and frames
-regardless of the positioning of their columns.
+Determine whether two AbstractMultiFrameDatasets have the same inner DataFrame and frames,
+regardless of the ordering of the columns of their DataFrames.
 
-Note: the check will performed against the instances too; if the intent is to just check
+Note: the check will be performed against the instances too; if the intent is to just check
 the presence of the same attributes use [`_same_attributes`](@ref) instead.
 
-TODO perhaps could be done better? E.g. using the aforedefined functions.
+TODO: perhaps could be done better? E.g. using the aforedefined functions.
 
 $(__note_about_utils)
 """
@@ -184,16 +184,19 @@ If an attribute does not exist the returned Vector will contain `0`(-es).
 $(__note_about_utils)
 """
 function _name2index(df::AbstractDataFrame, attribute_name::Symbol)
-    columnindex(df, attribute_name)
+    return columnindex(df, attribute_name)
 end
 function _name2index(mfd::AbstractMultiFrameDataset, attribute_name::Symbol)
-    columnindex(data(mfd), attribute_name)
+    return columnindex(data(mfd), attribute_name)
 end
 function _name2index(df::AbstractDataFrame, attribute_names::AbstractVector{Symbol})
-    [_name2index(df, attr_name) for attr_name in attribute_names]
+    return [_name2index(df, attr_name) for attr_name in attribute_names]
 end
-function _name2index(mfd::AbstractMultiFrameDataset, attribute_names::AbstractVector{Symbol})
-    [_name2index(mfd, attr_name) for attr_name in attribute_names]
+function _name2index(
+    mfd::AbstractMultiFrameDataset,
+    attribute_names::AbstractVector{Symbol}
+)
+    return [_name2index(mfd, attr_name) for attr_name in attribute_names]
 end
 
 """

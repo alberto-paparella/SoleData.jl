@@ -51,14 +51,17 @@ ninstances(mfd::AbstractMultiFrameDataset) = nrow(data(mfd))
 ninstances(mfd::AbstractMultiFrameDataset, i::Integer) = nrow(frame(mfd, i))
 
 """
-    pushinstance!(mfd, instance)
+    pushinstances!(mfd, instance)
 
 Add `instance` to `mfd` multiframe dataset and return `mfd`.
 
 The instance can be a `DataFrameRow` or an `AbstractVector` but in both cases the number and
 type of attributes should match the dataset ones.
+
+TODO: add assertion on types?
+push! already throws an Exception for mismatching types in columns
 """
-function pushinstance!(mfd::AbstractMultiFrameDataset, instance::DataFrameRow)
+function pushinstances!(mfd::AbstractMultiFrameDataset, instance::DataFrameRow)
     @assert length(instance) == nattributes(mfd) "Mismatching number of attributes " *
         "between dataset ($(nattributes(mfd))) and instance ($(length(instance)))"
 
@@ -66,7 +69,7 @@ function pushinstance!(mfd::AbstractMultiFrameDataset, instance::DataFrameRow)
 
     return mfd
 end
-function pushinstance!(mfd::AbstractMultiFrameDataset, instance::AbstractVector)
+function pushinstances!(mfd::AbstractMultiFrameDataset, instance::AbstractVector)
     @assert length(instance) == nattributes(mfd) "Mismatching number of attributes " *
         "between dataset ($(nattributes(mfd))) and instance ($(length(instance)))"
 
@@ -74,8 +77,21 @@ function pushinstance!(mfd::AbstractMultiFrameDataset, instance::AbstractVector)
 
     return mfd
 end
+function pushinstances!(mfd::AbstractMultiFrameDataset, instances::AbstractDataFrame)
+    for inst in eachrow(instances)
+        pushinstances!(mfd, inst)
+    end
+
+    return mfd
+end
 
 """
+    deleteinstances!(mfd, i)
+
+Remove the `i`-th instance in `mfd` multiframe dataset.
+
+The `AbstractMultiFrameDataset` is returned.
+
     deleteinstances!(mfd, indices)
 
 Remove the instances at `indices` in `mfd` multiframe dataset and return `mfd`.
@@ -92,15 +108,7 @@ function deleteinstances!(mfd::AbstractMultiFrameDataset, indices::AbstractVecto
 
     return mfd
 end
-
-"""
-    deleteinstance!(mfd, i)
-
-Remove the `i`-th instance in `mfd` multiframe dataset.
-
-The `AbstractMultiFrameDataset` is returned.
-"""
-deleteinstance!(mfd::AbstractMultiFrameDataset, i::Integer) = deleteinstances!(mfd, [i])
+deleteinstances!(mfd::AbstractMultiFrameDataset, i::Integer) = deleteinstances!(mfd, [i])
 
 """
     keeponlyinstances!(mfd, indices)
@@ -108,8 +116,11 @@ deleteinstance!(mfd::AbstractMultiFrameDataset, i::Integer) = deleteinstances!(m
 Removes all instances that do not correspond to the indices present in `indices` from `mfd`
 multiframe dataset.
 """
-function keeponlyinstances!(mfd::AbstractMultiFrameDataset, indices::AbstractVector{<:Integer})
-    deleteinstances!(mfd, setdiff(collect(1:ninstances(mfd)), indices))
+function keeponlyinstances!(
+    mfd::AbstractMultiFrameDataset,
+    indices::AbstractVector{<:Integer}
+)
+    return deleteinstances!(mfd, setdiff(collect(1:ninstances(mfd)), indices))
 end
 
 """
@@ -121,48 +132,46 @@ Get `i`-th instance in `mfd` multiframe dataset.
 
 Get `i_instance`-th instance in `mfd` multiframe dataset with only attributes present in
 the `i_frame`-th frame.
+
+    instance(mfd, indices)
+
+Get instances at `indices` in `mfd` multiframe dataset.
+
+    instance(mfd, i_frame, inst_indices)
+
+Get indices at `inst_indices` in `mfd` multiframe dataset with only attributes present in
+the `i_frame`-th frame.
 """
 function instance(df::AbstractDataFrame, i::Integer)
     @assert 1 ≤ i ≤ ninstances(df) "Index ($i) must be a valid instance number " *
         "(1:$(ninstances(mfd))"
 
-    @view df[i,:]
+    return @view df[i,:]
 end
 function instance(mfd::AbstractMultiFrameDataset, i::Integer)
     @assert 1 ≤ i ≤ ninstances(mfd) "Index ($i) must be a valid instance number " *
         "(1:$(ninstances(mfd))"
 
-    instance(data(mfd), i)
+    return instance(data(mfd), i)
 end
 function instance(mfd::AbstractMultiFrameDataset, i_frame::Integer, i_instance::Integer)
     @assert 1 ≤ i_frame ≤ nframes(mfd) "Index ($i_frame) must be a valid " *
         "frame number (1:$(nframes(mfd))"
 
-    instance(frame(mfd, i_frame), i_instance)
+    return instance(frame(mfd, i_frame), i_instance)
 end
-
-"""
-    instances(mfd, indices)
-
-Get instances at `indices` in `mfd` multiframe dataset.
-
-    instances(mfd, i_frame, inst_indices)
-
-Get indices at `inst_indices` in `mfd` multiframe dataset with only attributes present in
-the `i_frame`-th frame.
-"""
-function instances(df::AbstractDataFrame, indices::AbstractVector{<:Integer})
+function instance(df::AbstractDataFrame, indices::AbstractVector{<:Integer})
     for i in indices
         @assert 1 ≤ i ≤ ninstances(df) "Index ($i) must be a valid instance number " *
             "(1:$(ninstances(mfd))"
     end
 
-    @view df[indices,:]
+    return @view df[indices,:]
 end
-function instances(mfd::AbstractMultiFrameDataset, indices::AbstractVector{<:Integer})
-    instances(data(mfd), indices)
+function instance(mfd::AbstractMultiFrameDataset, indices::AbstractVector{<:Integer})
+    return instance(data(mfd), indices)
 end
-function instances(
+function instance(
     mfd::AbstractMultiFrameDataset,
     i_frame::Integer,
     inst_indices::AbstractVector{<:Integer}
@@ -170,5 +179,5 @@ function instances(
     @assert 1 ≤ i_frame ≤ nframes(mfd) "Index ($i_frame) must be a valid " *
         "frame number (1:$(nframes(mfd))"
 
-    instances(frame(mfd, i_frame), inst_indices)
+    return instance(frame(mfd, i_frame), inst_indices)
 end

@@ -6,11 +6,19 @@
     frame(mfd, i)
 
 Get the `i`-th frame of `mfd` multiframe dataset.
+
+    frame(mfd, indices)
+
+Get a Vector of frames at `indices` of `mfd` multiframe dataset.
 """
 function frame(mfd::AbstractMultiFrameDataset, i::Integer)
-    @assert 1 ≤ i ≤ nframes(mfd) "Index ($i) must be a valid frame number (1:$(nframes(mfd)))"
+    @assert 1 ≤ i ≤ nframes(mfd) "Index ($i) must be a valid frame number " *
+        "(1:$(nframes(mfd)))"
 
-    @view data(mfd)[:,descriptor(mfd)[i]]
+    return @view data(mfd)[:,descriptor(mfd)[i]]
+end
+function frame(mfd::AbstractMultiFrameDataset, indices::AbstractVector{<:Integer})
+    return [frame(mfd, i) for i in indices]
 end
 
 """
@@ -99,14 +107,16 @@ function addframe!(mfd::AbstractMultiFrameDataset, indices::AbstractVector{<:Int
 
     return mfd
 end
+# TODO: addframe! with Integer
 function addframe!(mfd::AbstractMultiFrameDataset, attribute_names::AbstractVector{Symbol})
     for attr_name in attribute_names
-        @assert hasattribute(mfd, attr_name) "MultiFrameDataset does not contain " *
+        @assert hasattributes(mfd, attr_name) "MultiFrameDataset does not contain " *
             "attribute $(attr_name)"
     end
 
-    addframe!(mfd, _name2index(mfd, attribute_names))
+    return addframe!(mfd, _name2index(mfd, attribute_names))
 end
+# TODO: addframe! with Symbol
 
 """
     removeframe!(mfd, i)
@@ -172,6 +182,7 @@ julia> removeframe!(mfd, 2)
    2 │ [0.540302, -0.416147, -0.989992,…
 ```
 """
+# TODO: add removeframe! with AbstractVector{<:Integer}
 function removeframe!(mfd::AbstractMultiFrameDataset, i::Integer)
     @assert 1 ≤ i ≤ nframes(mfd) "Index $(i) does not correspond to a frame " *
         "(1:$(nframes(mfd)))"
@@ -182,21 +193,24 @@ function removeframe!(mfd::AbstractMultiFrameDataset, i::Integer)
 end
 
 """
-    addattribute_toframe!(mfd, farme_index, attr_index)
-    addattribute_toframe!(mfd, farme_index, attr_name)
+    addattribute_toframe!(mfd, frame_index, attr_index)
+    addattribute_toframe!(mfd, frame_index, attr_name)
 
 Add attribute at index `attr_index` to the frame at index `frame_index` in `mfd` multiframe
 dataset and return `mfd`.
 
 Alternatively to `attr_index` the attribute name can be used.
+
+TODO: examples & review
 """
+# TODO: add addattribute_toframe! with AbstractVector{<:Integer}
 function addattribute_toframe!(
     mfd::AbstractMultiFrameDataset, frame_index::Integer, attr_index::Integer
 )
-    @assert 1 ≤ frame_index ≤ nframes(mfd) "Index $(frame_index) does not correspond to " *
-        "a frame (1:$(nframes(mfd)))"
-    @assert 1 ≤ attr_index ≤ nattributes(mfd) "Index $(attr_index) does not correspond to " *
-        "an attribute (1:$(nattributes(mfd)))"
+    @assert 1 ≤ frame_index ≤ nframes(mfd) "Index $(frame_index) does not correspond " *
+        "to a frame (1:$(nframes(mfd)))"
+    @assert 1 ≤ attr_index ≤ nattributes(mfd) "Index $(attr_index) does not correspond " *
+        "to an attribute (1:$(nattributes(mfd)))"
 
     if attr_index in descriptor(mfd)[frame_index]
         @info "Attribute $(attr_index) is already part of frame $(frame_index)"
@@ -206,13 +220,14 @@ function addattribute_toframe!(
 
     return mfd
 end
+# TODO: add addattribute_toframe! with AbstractVector{Symbol}
 function addattribute_toframe!(
     mfd::AbstractMultiFrameDataset, frame_index::Integer, attr_name::Symbol
 )
-    @assert hasattribute(mfd, attr_name) "MultiFrameDataset does not contain attribute " *
+    @assert hasattributes(mfd, attr_name) "MultiFrameDataset does not contain attribute " *
         "$(attr_name)"
 
-    addattribute_toframe!(mfd, frame_index, _name2index(mfd, attr_name))
+    return addattribute_toframe!(mfd, frame_index, _name2index(mfd, attr_name))
 end
 
 """
@@ -223,14 +238,18 @@ Remove attribute at index `attr_index` from the frame at index `frame_index` in 
 multiframe dataset and return `mfd`.
 
 Alternatively to `attr_index` the attribute name can be used.
+
+TODO: examples & review
 """
+# TODO: should be dropattribute_fromframe!
+# TODO: add dropattribute_toframe! with AbstractVector{<:Integer}
 function removeattribute_fromframe!(
     mfd::AbstractMultiFrameDataset, frame_index::Integer, attr_index::Integer
 )
-    @assert 1 ≤ frame_index ≤ nframes(mfd) "Index $(frame_index) does not correspond to " *
-        "a frame (1:$(nframes(mfd)))"
-    @assert 1 ≤ attr_index ≤ nattributes(mfd) "Index $(attr_index) does not correspond to " *
-        "an attribute (1:$(nattributes(mfd)))"
+    @assert 1 ≤ frame_index ≤ nframes(mfd) "Index $(frame_index) does not correspond " *
+        "to a frame (1:$(nframes(mfd)))"
+    @assert 1 ≤ attr_index ≤ nattributes(mfd) "Index $(attr_index) does not correspond " *
+        "to an attribute (1:$(nattributes(mfd)))"
 
     if !(attr_index in descriptor(mfd)[frame_index])
         @info "Attribute $(attr_index) is not part of frame $(frame_index)"
@@ -240,19 +259,21 @@ function removeattribute_fromframe!(
         removeframe!(mfd, frame_index)
     else
         deleteat!(
-            descriptor(mfd)[frame_index], indexin(attr_index, descriptor(mfd)[frame_index])[1]
+            descriptor(mfd)[frame_index],
+            indexin(attr_index, descriptor(mfd)[frame_index])[1]
         )
     end
 
     return mfd
 end
+# TODO: add dropattribute_toframe! with AbstractVector{Symbol}
 function removeattribute_fromframe!(
     mfd::AbstractMultiFrameDataset, frame_index::Integer, attr_name::Symbol
 )
-    @assert hasattribute(mfd, attr_name) "MultiFrameDataset does not contain attribute " *
+    @assert hasattributes(mfd, attr_name) "MultiFrameDataset does not contain attribute " *
         "$(attr_name)"
 
-    removeattribute_fromframe!(mfd, frame_index, _name2index(mfd, attr_name))
+    return removeattribute_fromframe!(mfd, frame_index, _name2index(mfd, attr_name))
 end
 
 """
@@ -402,7 +423,7 @@ function insertframe!(
     new_indices = (nattributes(mfd)+1):(nattributes(mfd)+ncol(new_frame))
 
     for (k, c) in collect(zip(keys(eachcol(new_frame)), collect(eachcol(new_frame))))
-        insertattribute!(mfd, k, c)
+        insertattributes!(mfd, k, c)
     end
     addframe!(mfd, new_indices)
 
@@ -419,11 +440,11 @@ function insertframe!(
     existing_attributes::AbstractVector{Symbol}
 )
     for attr_name in existing_attributes
-        @assert hasattribute(mfd, attr_name) "MultiFrameDataset does not contain " *
+        @assert hasattributes(mfd, attr_name) "MultiFrameDataset does not contain " *
             "attribute $(attr_name)"
     end
 
-    insertframe!(mfd, col, new_frame, _name2index(mfd, existing_attributes))
+    return insertframe!(mfd, col, new_frame, _name2index(mfd, existing_attributes))
 end
 function insertframe!(
     mfd::AbstractMultiFrameDataset,
@@ -438,24 +459,26 @@ function insertframe!(
     existing_attributes::AbstractVector{Symbol}
 )
     for attr_name in existing_attributes
-        @assert hasattribute(mfd, attr_name) "MultiFrameDataset does not contain " *
+        @assert hasattributes(mfd, attr_name) "MultiFrameDataset does not contain " *
             "attribute $(attr_name)"
     end
 
-    insertframe!(mfd, nattributes(mfd)+1, new_frame, _name2index(mfd, existing_attributes))
+    return insertframe!(mfd, nattributes(mfd)+1, new_frame, _name2index(mfd, existing_attributes))
 end
 
 """
     dropframe!(mfd, i)
 
 Remove `i`-th frame from `mfd` multiframe dataset while dropping all attributes in it and
-return a DatFrame composed by all removed attributes columns.
+return the `mfd` without the dropped frames.
 
 Note: if the dropped attributes are present in other frames they will also be removed from
 them. This can lead to the removal of additional frames other than the `i`-th.
 
 If the intection is to remove a frame without releasing the attributes use
 [`removeframe!`](@ref) instead.
+
+TODO: review
 
 # Examples
 ```jldoctest
@@ -514,9 +537,10 @@ julia> mfd
    2 │ [0.540302, -0.416147, -0.989992,…
 ```
 """
+# TODO: add dropframe! with AbstractVector{<:Integer}
 function dropframe!(mfd::AbstractMultiFrameDataset, i::Integer)
     @assert 1 ≤ i ≤ nframes(mfd) "Index $(i) does not correspond to a frame " *
         "(1:$(nframes(mfd)))"
 
-    dropattributes!(mfd, descriptor(mfd)[i])
+    return dropattributes!(mfd, descriptor(mfd)[i])
 end
