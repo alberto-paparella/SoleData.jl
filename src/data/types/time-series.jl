@@ -242,8 +242,13 @@ struct TimeExplicitTimeSeries <: TimeSeries
         extrapolation_method::Function = noextrapolation
     )
         @assert length(series) == length(time) "`series` and `time` mismtaches in length"
-        # TODO: assert time is increasing
-        # TODO: all time[1] has to be = 0.0
+
+        @assert isincreasing(time) "`time` should be increasing"
+
+        if time[1] != 0
+            correction = time[1]
+            time = time .- correction
+        end
 
         if collect(time) == collect(1:length(series))
             return TimeSeries(
