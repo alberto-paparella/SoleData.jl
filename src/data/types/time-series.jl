@@ -3,7 +3,16 @@
 # Abstract types
 
 """
-TODO: docs
+Abstract supertype for all TemporalEntities that can be described as values changing over
+time.
+
+A concrete TimeSeries should always provide accessors [`series`](@ref), to
+access the points of the series, [`time`](@ref), to access the times at which the points
+are defined, [`interpolation_method`](@ref) which defines the way the points are interpolated
+and [`extrapolation_method`](@ref) which defines the way the points are extrapolated.
+
+A TimeSeries point can be accessed by its index, just like it it was a Vector of Numbers or
+by using AbstractFloats indicating the time elapsed from the first point of the series.
 """
 abstract type TimeSeries <: TemporalEntity end
 
@@ -22,17 +31,24 @@ end
 function extrapolation_method(ts::TimeSeries)
     error("`extrapolation_method` accessor not implemented for type " * string(typeof(ts)))
 end
-function estimate(ts::TimeSeries, t::AbstractFloat)
-    if time(ts)[1] ≤ t ≤ time(ts)[end]
-        return interpolation_method(ts)(ts, t)
-    else
-        return extrapolation_method(ts)(ts, t)
-    end
-end
 
 # -------------------------------------------------------------
 # TimeSeries - iterable interface
 
+"""
+    getindex(timeseries, i)
+
+Get the `i`-th point in TimeSeries `timeseries`.
+
+    getindex(timeseries, time)
+
+Get the point in TimeSeries `timeseries` at `time`.
+
+If point at `time` is not defined then [`estimate`](@ref) is called.
+
+# Examples
+#TODO: examples
+"""
 getindex(ts::TimeSeries, i::Integer) = series(ts)[i]
 getindex(ts::TimeSeries, indices::AbstractVector{<:Integer}) = series(ts)[indices]
 function getindex(ts::TimeSeries, t::AbstractFloat)
@@ -52,6 +68,23 @@ function getindex(ts::TimeSeries, times::AbstractVector{<:AbstractFloat})
     [ts[t] for t in times]
 end
 
+"""
+    estimate(timeseries, time)
+
+Estimate the value of the point at `time` in TimeSeries `timeseries`.
+
+If `time` is inside the time range in which the TimeSeries is defined then the
+[`interpolation_method`](@ref) defined for the TimeSeries is called,
+[`extrapolation_method`](@ref) otherwise.
+"""
+function estimate(ts::TimeSeries, t::AbstractFloat)
+    if time(ts)[1] ≤ t ≤ time(ts)[end]
+        return interpolation_method(ts)(ts, t)
+    else
+        return extrapolation_method(ts)(ts, t)
+    end
+end
+
 length(ts::TimeSeries) = length(series(ts))
 ndims(ts::TimeSeries) = 1
 isempty(ts::TimeSeries) = length(ts) == 0
@@ -64,13 +97,29 @@ Base.@propagate_inbounds function iterate(ts::TimeSeries, i::Integer = 1)
     (@inbounds series(ts)[i], i+1)
 end
 
-show(ts::TimeSeries) = show(series(ts))
+show(io::IO, ts::TimeSeries) = show(io, series(ts))
+
+const __default_constructor_msg = """In most cases it is advised to use the more generic
+[`TimeSeries`](@ref) which will try to use the most compact representation possible for the
+series.
+"""
 
 # -------------------------------------------------------------
 # PointTimeSeries
 
 """
-TODO: docs
+    PointTimeSeries(series, interpolation_method = nointerpolation, extrapolation_method =
+    noextrapolation)
+
+Create a `PointTimeSeries` with points from `series`.
+
+A `PointTimeSeries` is a `TimeSeries` with all points registered at a constant sampling rate
+of 1.
+
+$__default_constructor_msg
+
+# Examples
+TODO: examples
 """
 struct PointTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
@@ -99,7 +148,19 @@ extrapolation_method(ts::PointTimeSeries) = ts.extrapolation_method
 # ConstantRateTimeSeries
 
 """
-TODO: docs
+    ConstantRateTimeSeries(series, samplerate = 1, interpolation_method = nointerpolation,
+    extrapolation_method = noextrapolation)
+
+Create a `ConstantRateTimeSeries` with points from `series` sampled at constant rate
+`samplerate`.
+
+A `ConstantRateTimeSeries` is a `TimeSeries` with all points registered at a constant
+sampling rate of `samplerate`.
+
+$__default_constructor_msg
+
+# Examples
+TODO: examples
 """
 struct ConstantRateTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
@@ -155,7 +216,18 @@ extrapolation_method(ts::ConstantRateTimeSeries) = ts.extrapolation_method
 # TimeExplicitTimeSeries
 
 """
-TODO: docs
+    TimeExplicitTimeSeries(series, time = collect(1:length(values)), interpolation_method =
+    nointerpolation, extrapolation_method = noextrapolation)
+
+Create a `TimeExplicitTimeSeries` with points from `series` sampled at times `time`.
+
+A `TimeExplicitTimeSeries` is a `TimeSeries` in which each point is associated with a time
+explicitly
+
+$__default_constructor_msg
+
+# Examples
+TODO: examples
 """
 struct TimeExplicitTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
@@ -164,30 +236,30 @@ struct TimeExplicitTimeSeries <: TimeSeries
     extrapolation_method::Function
 
     function TimeExplicitTimeSeries(
-        values::AbstractVector{<:Number},
-        time::AbstractVector{<:AbstractFloat} = collect(1:length(values)),
+        series::AbstractVector{<:Number},
+        time::AbstractVector{<:AbstractFloat} = collect(1:length(series)),
         interpolation_method::Function = nointerpolation,
         extrapolation_method::Function = noextrapolation
     )
-        @assert length(values) == length(time) "`values` and `time` mismtaches in length"
+        @assert length(series) == length(time) "`series` and `time` mismtaches in length"
         # TODO: assert time is increasing
         # TODO: all time[1] has to be = 0.0
 
-        if collect(time) == collect(1:length(values))
+        if collect(time) == collect(1:length(series))
             return TimeSeries(
-                values;
+                series;
                 interpolation_method = interpolation_method,
                 extrapolation_method = extrapolation_method
             )
         elseif _has_approx_constant_increase(time)
             return ConstantRateTimeSeries(
-                values,
+                series,
                 _approx_samplerate(time),
                 interpolation_method,
                 extrapolation_method
             )
         else
-            return new(values, Float64.(time), interpolation_method, extrapolation_method)
+            return new(series, Float64.(time), interpolation_method, extrapolation_method)
         end
     end
 end
@@ -231,10 +303,11 @@ function convert(
     t::Tuple{<:AbstractVector{<:Number},<:AbstractVector{<:Number}}
 )
     # TODO: implement conversion to TimeExplicitTimeSeries
-    throw(Exception("conversion to TimeExplicitTimeSeries still not implementd"))
+    throw(Exception("conversion to TimeExplicitTimeSeries still not implemented"))
 end
 
 istimeseries(ts::Any) = false
 istimeseries(ts::TimeSeries) = true
+istimeseries(ts::AbstractVector{<:Number}) = true
 istimeseries(ts::Tuple{<:AbstractVector{<:Number},<:Real}) = true
 istimeseries(ts::Tuple{<:Real,<:AbstractVector{<:Number}}) = true

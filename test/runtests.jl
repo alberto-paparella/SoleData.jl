@@ -19,7 +19,8 @@ const ages = DataFrame(:age => [35, 38, 37])
 
 const ts_points = [1, 2, 3, 4, 1, 2, 7, 4, 5]
 const ts_time_constant_1 = collect(1.0:length(ts_points))
-const ts_constant_timestep = 0.1
+const ts_constant_samplerate = 10.0
+const ts_constant_timestep = 1.0 / ts_constant_samplerate
 const ts_time_constant_dec = collect(0.0:ts_constant_timestep:(ts_constant_timestep*(length(ts_points)-1)))
 const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78])
 
@@ -295,6 +296,8 @@ const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78
 
         # ConstantRateTimeSeries
         curr_ts = TimeSeries(ts_points, ts_time_constant_dec)
+
+        @test curr_ts == TimeSeries(ts_points, ts_constant_samplerate)
 
         @test curr_ts isa TimeSeries
         @test curr_ts isa ConstantRateTimeSeries
