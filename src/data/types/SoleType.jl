@@ -25,6 +25,7 @@ export TextualEntity
 
 # time series
 export TimeSeries
+export PointTimeSeries, ConstantRateTimeSeries, TimeExplicitTimeSeries
 export istimeseries
 
 # -------------------------------------------------------------
@@ -59,6 +60,7 @@ Abstract supertype for all Entities that can be described by a text.
 abstract type TextualEntity{ND} <: AbstractEntity where ND <:UInt end
 
 include("time-series.jl")
+include("time-series-estimation.jl")
 include("utils.jl")
 
 end # module

@@ -17,6 +17,12 @@ const df_langs = DataFrame(
 
 const ages = DataFrame(:age => [35, 38, 37])
 
+const ts_points = [1, 2, 3, 4, 1, 2, 7, 4, 5]
+const ts_time_constant_1 = collect(1.0:length(ts_points))
+const ts_constant_timestep = 0.1
+const ts_time_constant_dec = collect(0.0:ts_constant_timestep:(ts_constant_timestep*(length(ts_points)-1)))
+const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78])
+
 @testset "SoleBase.jl" begin
 
     @testset "dataset" begin
@@ -261,5 +267,66 @@ const ages = DataFrame(:age => [35, 38, 37])
         mfd2 = deepcopy(mfd_attr_names_original)
         @test keeponlyattributes!(mfd1, [1]) == keeponlyattributes!(mfd2, [:age])
         @test mfd1 == mfd2
+    end
+
+    @testset "time-series" begin
+        curr_ts = TimeSeries(ts_points)
+
+        @test curr_ts isa TimeSeries
+        @test curr_ts isa PointTimeSeries
+
+        # PointTimeSeries
+        curr_ts = TimeSeries(ts_points, ts_time_constant_1)
+
+        @test curr_ts isa TimeSeries
+        @test curr_ts isa PointTimeSeries
+        @test length(curr_ts) == length(ts_points)
+        @test curr_ts[1:end] == ts_points[1:end]
+        for (i, p) in enumerate(curr_ts) # test iterable interface
+            @test p == ts_points[i] # is iterating on series points?
+            @test curr_ts[i] == ts_points[i] # test getindex too
+            @test curr_ts[Float64(i-1)] == ts_points[i] # test getindex by time
+        end
+        @test ismissing(curr_ts[0.5])
+        @test_throws BoundsError curr_ts[-1.0]
+        @test_throws BoundsError curr_ts[11.0]
+        @test eltype(curr_ts) == eltype(ts_points)
+        @test ndims(curr_ts) == 1
+
+        # ConstantRateTimeSeries
+        curr_ts = TimeSeries(ts_points, ts_time_constant_dec)
+
+        @test curr_ts isa TimeSeries
+        @test curr_ts isa ConstantRateTimeSeries
+        @test length(curr_ts) == length(ts_points)
+        @test curr_ts[1:end] == ts_points[1:end]
+        for (i, p) in enumerate(curr_ts) # test iterable interface
+            @test p == ts_points[i] # is iterating on series points?
+            @test curr_ts[i] == ts_points[i] # test getindex too
+            @test curr_ts[Float64((i-1)*0.1)] == ts_points[i] # test getindex by time
+        end
+        @test ismissing(curr_ts[0.55])
+        @test_throws BoundsError curr_ts[-1.0]
+        @test_throws BoundsError curr_ts[11.0]
+        @test eltype(curr_ts) == eltype(ts_points)
+        @test ndims(curr_ts) == 1
+
+        # TimeExplicitTimeSeries
+        curr_ts = TimeSeries(ts_points, ts_time_variable)
+
+        @test curr_ts isa TimeSeries
+        @test curr_ts isa TimeExplicitTimeSeries
+        @test length(curr_ts) == length(ts_points)
+        @test curr_ts[1:end] == ts_points[1:end]
+        for (i, p) in enumerate(curr_ts) # test iterable interface
+            @test p == ts_points[i] # is iterating on series points?
+            @test curr_ts[i] == ts_points[i] # test getindex too
+            @test curr_ts[ts_time_variable[i]] == ts_points[i] # test getindex by time
+        end
+        @test ismissing(curr_ts[0.5])
+        @test_throws BoundsError curr_ts[-1.0]
+        @test_throws BoundsError curr_ts[11.0]
+        @test eltype(curr_ts) == eltype(ts_points)
+        @test ndims(curr_ts) == 1
     end
 end

@@ -19,5 +19,5 @@ function _has_approx_constant_increase(time::AbstractVector{<:Number})
 end
 
 function _approx_samplerate(time::AbstractVector{<:Number})
-    return mean([(time[i+1] - time[i]) for i in 1:(length(time)-1)])
+    return 1.0 / mean([(time[i+1] - time[i]) for i in 1:(length(time)-1)])
 end
