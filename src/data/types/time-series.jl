@@ -97,7 +97,12 @@ Base.@propagate_inbounds function iterate(ts::TimeSeries, i::Integer = 1)
     (@inbounds series(ts)[i], i+1)
 end
 
-show(io::IO, ts::TimeSeries) = show(io, series(ts))
+function show(io::IO, ts::TimeSeries)
+    print(io, "TimeSeries(")
+    show(io, series(ts))
+    println(io, ")")
+end
+show(ts::TimeSeries) = show(stdout, ts)
 
 const __default_constructor_msg = """In most cases it is advised to use the more generic
 [`TimeSeries`](@ref) which will try to use the most compact representation possible for the
@@ -200,6 +205,14 @@ function TimeSeries(
     )
 end
 
+function show(io::IO, ts::ConstantRateTimeSeries)
+    print(io, "TimeSeries(@")
+    show(io, ts.samplerate)
+    print(io, ", ")
+    show(io, series(ts))
+    println(io, ")")
+end
+
 # -------------------------------------------------------------
 # ConstantRateTimeSeries - accessors
 
@@ -237,7 +250,7 @@ struct TimeExplicitTimeSeries <: TimeSeries
 
     function TimeExplicitTimeSeries(
         series::AbstractVector{<:Number},
-        time::AbstractVector{<:AbstractFloat} = collect(1:length(series)),
+        time::AbstractVector{<:Real} = collect(1:length(series)),
         interpolation_method::Function = nointerpolation,
         extrapolation_method::Function = noextrapolation
     )
@@ -278,6 +291,12 @@ function TimeSeries(
     return TimeExplicitTimeSeries(values, time, interpolation_method, extrapolation_method)
 end
 
+function show(io::IO, ts::TimeExplicitTimeSeries)
+    print(io, "TimeSeries(")
+    show(io, collect(zip(series(ts),time(ts))))
+    println(io, ")")
+end
+show
 # -------------------------------------------------------------
 # TimeExplicitTimeSeries - accessors
 
@@ -295,18 +314,24 @@ convert(::Type{T}, x::T) where T<:TimeSeries = x
 convert(::Type{T}, v::AbstractVector{<:Number}) where T<:TimeSeries = T(v)
 
 # vectors + samplerate -> TimeSeries
-function convert(::Type{ConstantRateTimeSeries}, t::Tuple{<:AbstractVector{<:Number},<:Real})
+function convert(
+    ::Type{T},
+    t::Tuple{S,SR}
+) where {T<:TimeSeries, S<:AbstractVector{<:Number}, SR<:Real}
     return TimeSeries(t[1], t[2])
 end
-function convert(::Type{ConstantRateTimeSeries}, t::Tuple{<:Real,<:AbstractVector{<:Number}})
+function convert(
+    ::Type{T},
+    t::Tuple{SR,S}
+) where {T<:TimeSeries, S<:AbstractVector{<:Number}, SR<:Real}
     return TimeSeries(t[2], t[1])
 end
 
 # vectors + explicit time coordinates -> TimeSeries
 function convert(
-    ::Type{TimeExplicitTimeSeries},
-    t::Tuple{<:AbstractVector{<:Number},<:AbstractVector{<:Number}}
-)
+    ::Type{T},
+    t::Tuple{S1,S2}
+) where {T<:TimeSeries, S1<:AbstractVector{<:Number}, S2<:AbstractVector{<:Number}}
     # TODO: implement conversion to TimeExplicitTimeSeries
     throw(Exception("conversion to TimeExplicitTimeSeries still not implemented"))
 end
