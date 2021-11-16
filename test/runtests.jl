@@ -276,6 +276,11 @@ const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78
         @test curr_ts isa TimeSeries
         @test curr_ts isa PointTimeSeries
 
+        @test istimeseries(curr_ts) == true
+        @test istimeseries(ts_points) == true
+        @test istimeseries((ts_points, ts_constant_samplerate)) == true
+        @test istimeseries((ts_constant_samplerate, ts_points)) == true
+
         # PointTimeSeries
         curr_ts = TimeSeries(ts_points, ts_time_constant_1)
 
@@ -331,5 +336,11 @@ const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78
         @test_throws BoundsError curr_ts[11.0]
         @test eltype(curr_ts) == eltype(ts_points)
         @test ndims(curr_ts) == 1
+
+        # convert
+        @test convert(TimeSeries, TimeSeries(ts_points, ts_time_variable)) isa TimeSeries
+        @test convert(TimeSeries, ts_points) isa TimeSeries
+        @test convert(TimeSeries, (ts_constant_samplerate, ts_points)) isa TimeSeries
+        @test convert(TimeSeries, (ts_points, ts_constant_samplerate)) isa TimeSeries
     end
 end
