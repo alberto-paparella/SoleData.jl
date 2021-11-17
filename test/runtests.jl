@@ -281,6 +281,10 @@ const ts_time_variable = Float64.([0.0, 0.1, 0.3, 0.9, 1.2, 1.3, 1.31, 1.5, 1.78
         @test istimeseries((ts_points, ts_constant_samplerate)) == true
         @test istimeseries((ts_constant_samplerate, ts_points)) == true
 
+        @test TimeSeries(ts_points, ts_time_constant_1) == TimeSeries(ts_points)
+        @test TimeSeries([1,2,3]) ≈ TimeSeries([1,2.00000005,3])
+        @test map(x -> 2x, TimeSeries(ts_points)) == 2 * ts_points
+
         # PointTimeSeries
         curr_ts = TimeSeries(ts_points, ts_time_constant_1)
 

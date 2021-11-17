@@ -6,6 +6,7 @@ using ScientificTypes
 import Base: eltype, isempty, iterate, map, getindex, length
 import Base: firstindex, lastindex, ndims, size, show
 import Base: convert
+import Base: isequal, ==, isapprox, ≈
 
 # -------------------------------------------------------------
 # exports
@@ -25,6 +26,7 @@ export TextualEntity
 
 # time series
 export TimeSeries
+export series, time
 export PointTimeSeries, ConstantRateTimeSeries, TimeExplicitTimeSeries
 export istimeseries
 

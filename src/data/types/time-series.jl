@@ -19,9 +19,19 @@ abstract type TimeSeries <: TemporalEntity end
 # -------------------------------------------------------------
 # TimeSeries - accessors
 
+"""
+    series(ts)
+
+Get the point of the series as a Vector.
+"""
 function series(ts::TimeSeries)
     error("`series` accessor not implemented for type " * string(typeof(ts)))
 end
+"""
+    time(ts)
+
+Get the times of the series as a Vector.
+"""
 function time(ts::TimeSeries)
     error("`time` accessor not implemented for type " * string(typeof(ts)))
 end
@@ -47,7 +57,26 @@ Get the point in TimeSeries `timeseries` at `time`.
 If point at `time` is not defined then [`estimate`](@ref) is called.
 
 # Examples
-#TODO: examples
+```jldoctest
+julia> ts = TimeSeries([1,2,3,1,4], [0.1, 0.5, 0.7, 1.3, 1.9])
+TimeSeries([(1, 0.0), (2, 0.4), (3, 0.6), (1, 1.2), (4, 1.8)])
+
+julia> ts[1]
+1
+
+julia> ts[5]
+4
+
+julia> ts[0.4]
+2
+
+julia> ts[0.5]
+missing
+
+julia> ts[2.5]
+ERROR: BoundsError: attempt to access 5-element Vector{Float64} at index [2.5]
+Stacktrace: [... omitted ...]
+```
 """
 getindex(ts::TimeSeries, i::Integer) = series(ts)[i]
 getindex(ts::TimeSeries, indices::AbstractVector{<:Integer}) = series(ts)[indices]
@@ -97,24 +126,43 @@ Base.@propagate_inbounds function iterate(ts::TimeSeries, i::Integer = 1)
     (@inbounds series(ts)[i], i+1)
 end
 
+map(f::Function, ts::TimeSeries) = map(f, series(ts))
+
+function isequal(ts1::TimeSeries, ts2::TimeSeries)
+    return series(ts1) == series(ts2) && time(ts1) == time(ts2)
+end
+function ==(ts1::TimeSeries, ts2::TimeSeries)
+    return isequal(ts1, ts2)
+end
+
+function isapprox(ts1::TimeSeries, ts2::TimeSeries)
+    return series(ts1) ≈ series(ts2) && time(ts1) ≈ time(ts2)
+end
+
 function show(io::IO, ts::TimeSeries)
     print(io, "TimeSeries(")
     show(io, series(ts))
-    println(io, ")")
+    print(io, ")")
 end
 show(ts::TimeSeries) = show(stdout, ts)
 
 const __default_constructor_msg = """In most cases it is advised to use the more generic
-[`TimeSeries`](@ref) which will try to use the most compact representation possible for the
-series.
+[`TimeSeries`](@ref) constructor because the most compact representation possible will be
+used anyway.
+"""
+
+const __esimate_msg = """The last two arguments define respectively how to interpolate or
+extrapolate values when accessing the series by time.
+
+The default behaviour is to retrun `missing` for interpolation and throw a `BoundsError` for
+extrapolation.
 """
 
 # -------------------------------------------------------------
 # PointTimeSeries
 
 """
-    PointTimeSeries(series, interpolation_method = nointerpolation, extrapolation_method =
-    noextrapolation)
+    PointTimeSeries(series, nointerpolation, noextrapolation)
 
 Create a `PointTimeSeries` with points from `series`.
 
@@ -124,12 +172,41 @@ of 1.
 $__default_constructor_msg
 
 # Examples
-TODO: examples
+```jldoctest
+julia> ts = TimeSeries([1,2,3,4,1])
+TimeSeries([1, 2, 3, 4, 1])
+
+julia> PointTimeSeries([1,2,3,4,1])
+TimeSeries([1, 2, 3, 4, 1])
+
+julia> ts[0.0]
+1
+
+julia> ts[1.0]
+2
+
+julia> ts[1.5]
+missing
+
+julia> ts[1]
+1
+
+julia> ts[5]
+1
+```
 """
 struct PointTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
     interpolation_method::Function
     extrapolation_method::Function
+
+    function PointTimeSeries(
+        values::AbstractVector{<:Number},
+        interpolation_method::Function = nointerpolation,
+        extrapolation_method::Function = noextrapolation
+    )
+        return new(values, interpolation_method, extrapolation_method)
+    end
 end
 
 function TimeSeries(
@@ -153,8 +230,7 @@ extrapolation_method(ts::PointTimeSeries) = ts.extrapolation_method
 # ConstantRateTimeSeries
 
 """
-    ConstantRateTimeSeries(series, samplerate = 1, interpolation_method = nointerpolation,
-    extrapolation_method = noextrapolation)
+    ConstantRateTimeSeries(series, 1, nointerpolation, noextrapolation)
 
 Create a `ConstantRateTimeSeries` with points from `series` sampled at constant rate
 `samplerate`.
@@ -165,7 +241,27 @@ sampling rate of `samplerate`.
 $__default_constructor_msg
 
 # Examples
-TODO: examples
+```jldoctest
+julia> ts = ConstantRateTimeSeries([1,2,3,1,4], 5)
+TimeSeries(@5, [1, 2, 3, 1, 4])
+
+
+julia> ts isa ConstantRateTimeSeries
+true
+
+julia> ts isa PointTimeSeries
+false
+
+julia> ts = ConstantRateTimeSeries([1,2,3,1,4])
+TimeSeries([1, 2, 3, 1, 4])
+
+
+julia> ts isa ConstantRateTimeSeries
+false
+
+julia> ts isa PointTimeSeries
+true
+```
 """
 struct ConstantRateTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
@@ -210,7 +306,7 @@ function show(io::IO, ts::ConstantRateTimeSeries)
     show(io, ts.samplerate)
     print(io, ", ")
     show(io, series(ts))
-    println(io, ")")
+    print(io, ")")
 end
 
 # -------------------------------------------------------------
@@ -229,8 +325,8 @@ extrapolation_method(ts::ConstantRateTimeSeries) = ts.extrapolation_method
 # TimeExplicitTimeSeries
 
 """
-    TimeExplicitTimeSeries(series, time = collect(1:length(values)), interpolation_method =
-    nointerpolation, extrapolation_method = noextrapolation)
+    TimeExplicitTimeSeries(series, collect(1:length(values)), nointerpolation,
+    noextrapolation)
 
 Create a `TimeExplicitTimeSeries` with points from `series` sampled at times `time`.
 
@@ -240,7 +336,17 @@ explicitly
 $__default_constructor_msg
 
 # Examples
-TODO: examples
+```jldoctest
+julia> ts = TimeExplicitTimeSeries([1,2,3,1,4], [0.0, 0.5, 0.55, 0.75, 1.2])
+TimeSeries([(1, 0.0), (2, 0.5), (3, 0.55), (1, 0.75), (4, 1.2)])
+
+julia> ts = TimeExplicitTimeSeries([1,2,3,1,4], [0.0, 0.1, 0.2, 0.3, 0.4])
+TimeSeries(@10.0, [1, 2, 3, 1, 4])
+
+julia> ts = TimeExplicitTimeSeries([1,2,3,1,4], [0.0, 1.0, 2.0, 3.0, 4.0])
+TimeSeries([1, 2, 3, 1, 4])
+
+```
 """
 struct TimeExplicitTimeSeries <: TimeSeries
     series::AbstractVector{<:Number}
@@ -294,7 +400,7 @@ end
 function show(io::IO, ts::TimeExplicitTimeSeries)
     print(io, "TimeSeries(")
     show(io, collect(zip(series(ts),time(ts))))
-    println(io, ")")
+    print(io, ")")
 end
 show
 # -------------------------------------------------------------
