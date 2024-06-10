@@ -27,6 +27,7 @@ using SoleLogics
 # [`ScalarMetaCondition`](@ref).
 # """
 function randatom(
+    todelete::String,
     rng::AbstractRNG,
     a::UnionAlphabet{ScalarCondition,<:UnivariateScalarAlphabet};
     metaconditions::Union{Nothing,ScalarMetaCondition,AbstractVector{<:ScalarMetaCondition}} = nothing,
@@ -34,7 +35,7 @@ function randatom(
     test_operators::Union{Nothing,TestOperator,AbstractVector{<:TestOperator}} = nothing,
 )::Atom
     @warn "TODO this function is untested."
-    
+
     # Transform values to singletons
     metaconditions = metaconditions isa ScalarMetaCondition ? [metaconditions] : metaconditions
     features = features isa AbstractFeature ? [features] : features

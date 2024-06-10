@@ -16,7 +16,7 @@ abstract type AbstractPropositionalLogiset <: AbstractLogiset{AbstractAssignment
 ############################################################################################
 
 # TODO Add NaN checks.
-# TODOO @Edo Add examples to docstring, showing different ways of slicing it.
+# TODO @Edo Add examples to docstring, showing different ways of slicing it.
 """
     PropositionalLogiset(table)
 A logiset of propositional interpretations, wrapping a [Tables](https://github.com/JuliaData/Tables.jl)'
@@ -148,6 +148,20 @@ end
 # TODO: @test_nowarn alphabet(X, false)
 # TODO: @test_broken alphabet(X, false; skipextremes = true)
 # TODO skipextremes: note that for non-strict operators, the first atom has no entropy; for strict operators, the last has undefined entropy. Add parameter that skips those.
+
+"""
+    function alphabet(
+        X::PropositionalLogiset,
+        sorted = true;
+        test_operators::Union{Nothing,AbstractVector{<:TestOperator},Base.Callable} = nothing,
+        truerfirst::Bool = false,
+        skipextremes::Bool = true,
+        discretizedomain::Bool = false,
+        y::Union{Nothing, AbstractVector} = nothing,
+    )::UnionAlphabet{ScalarCondition,UnivariateScalarAlphabet}
+
+Given a PropositionalLogiset return an UnionAlphabet
+"""
 function alphabet(
     X::PropositionalLogiset,
     sorted = true;
@@ -157,6 +171,7 @@ function alphabet(
     discretizedomain::Bool = false,
     y::Union{Nothing, AbstractVector} = nothing,
 )::UnionAlphabet{ScalarCondition,UnivariateScalarAlphabet}
+
     get_test_operators(::Nothing, ::Type{<:Any}) = [(==), (≠)]
     get_test_operators(::Nothing, ::Type{<:Number}) = [≤, ≥]
     get_test_operators(v::AbstractVector, ::Type{<:Any}) = v

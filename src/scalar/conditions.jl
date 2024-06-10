@@ -1,5 +1,7 @@
 import SoleLogics: randatom
-############################################################################################
+import SoleLogics: emptyalphabet
+##############################)
+############################################################
 
 const DEFAULT_SCALARCOND_FEATTYPE = SoleData.VarFeature
 
@@ -328,6 +330,8 @@ end
 
 metacond(c::UnivariateScalarAlphabet)   = c.featcondition[1]
 thresholds(c::UnivariateScalarAlphabet) = c.featcondition[2]
+
+emptyalphabet(c::UnivariateScalarAlphabet) = isempty(c.featcondition[2])
 
 feature(c::UnivariateScalarAlphabet)        = feature(metacond(c))
 test_operator(c::UnivariateScalarAlphabet)  = test_operator(metacond(c))
